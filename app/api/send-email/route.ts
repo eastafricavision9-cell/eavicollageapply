@@ -86,18 +86,37 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error sending email:', error)
-    console.error('Error details:', {
+    
+    const errorDetails = {
       name: error.name,
       message: error.message,
       code: error.code,
-      command: error.command
-    })
+      command: error.command,
+      errno: error.errno,
+      syscall: error.syscall,
+      responseCode: error.responseCode,
+      response: error.response
+    }
+    
+    console.error('Detailed error information:', errorDetails)
+    
+    // Log the configuration being used (with masked password)
+    const currentConfig = {
+      user: process.env.SMTP_USER || process.env.GMAIL_EMAIL || 'eaviafrica@gmail.com',
+      pass: (process.env.SMTP_PASS || process.env.GMAIL_PASSWORD || 'cyeroelfhmblbnzp').substring(0, 4) + '****',
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: process.env.SMTP_PORT || '587'
+    }
+    
+    console.error('Email configuration used:', currentConfig)
     
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to send email',
-        details: error.message 
+        details: error.message,
+        errorCode: error.code,
+        config: currentConfig
       },
       { status: 500 }
     )
