@@ -99,10 +99,15 @@ export class EmailService {
         return true
       } else {
         console.error('❌ Failed to send admission PDF email:', result.error)
+        console.error('Response details:', result)
         return false
       }
     } catch (error) {
       console.error('Failed to send admission PDF email:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      })
       return false
     }
   }
