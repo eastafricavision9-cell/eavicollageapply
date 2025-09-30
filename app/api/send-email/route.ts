@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
-// SMTP configuration with multiple environment variable options
+// SMTP configuration with multiple environment variable options and robust fallbacks
 const smtpConfig = {
   ...(process.env.SMTP_HOST ? {
     host: process.env.SMTP_HOST,
@@ -13,7 +13,11 @@ const smtpConfig = {
   auth: {
     user: process.env.SMTP_USER || process.env.GMAIL_EMAIL || 'eaviafrica@gmail.com',
     pass: process.env.SMTP_PASS || process.env.GMAIL_PASSWORD || 'cyeroelfhmblbnzp' // App password
-  }
+  },
+  pool: true, // Use connection pooling
+  maxConnections: 3, // Limit concurrent connections
+  rateDelta: 1000, // 1 second between connections
+  rateLimit: 5 // Max 5 emails per rateDelta
 }
 
 // Create transporter
