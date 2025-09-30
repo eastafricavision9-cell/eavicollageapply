@@ -13,7 +13,7 @@ export async function GET() {
     console.log('Password available:', pass ? 'YES' : 'NO')
     
     // Create very simple transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: user,

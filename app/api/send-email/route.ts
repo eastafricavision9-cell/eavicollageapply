@@ -23,7 +23,7 @@ function createEmailTransporter() {
     logger: true // Enable logger
   }
   
-  return nodemailer.createTransporter(config)
+  return nodemailer.createTransport(config)
 }
 
 const transporter = createEmailTransporter()
