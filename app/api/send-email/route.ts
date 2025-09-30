@@ -1,40 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
-// SMTP configuration with multiple environment variable options and robust fallbacks
-const smtpConfig = {
-  ...(process.env.SMTP_HOST ? {
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
-  } : {
-    service: 'gmail', // fallback to Gmail service
-  }),
-  auth: {
-    user: process.env.SMTP_USER || process.env.GMAIL_EMAIL || 'eaviafrica@gmail.com',
-    pass: process.env.SMTP_PASS || process.env.GMAIL_PASSWORD || 'cyeroelfhmblbnzp' // App password
-  },
-  pool: true, // Use connection pooling
-  maxConnections: 3, // Limit concurrent connections
-  rateDelta: 1000, // 1 second between connections
-  rateLimit: 5 // Max 5 emails per rateDelta
+// SMTP configuration with better error handling and multiple fallbacks
+function createEmailTransporter() {
+  const user = process.env.GMAIL_EMAIL || process.env.SMTP_USER || 'eaviafrica@gmail.com'
+  const pass = process.env.GMAIL_PASSWORD || process.env.SMTP_PASS || 'cyeroelfhmblbnzp'
+  
+  console.log('Creating email transporter with user:', user)
+  console.log('Password available:', pass ? 'YES' : 'NO')
+  
+  // Try Gmail service first (most reliable)
+  const config = {
+    service: 'gmail',
+    auth: {
+      user: user,
+      pass: pass
+    },
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates
+    },
+    debug: true, // Enable debug logging
+    logger: true // Enable logger
+  }
+  
+  return nodemailer.createTransporter(config)
 }
 
-// Create transporter
-const transporter = nodemailer.createTransport(smtpConfig)
+const transporter = createEmailTransporter()
 
-// Verify transporter configuration
-transporter.verify(function(error, success) {
-  if (error) {
-    console.error('Email transporter verification failed:', error)
-  } else {
-    console.log('✅ Email server is ready to take our messages')
+// Verify transporter on first use
+let transporterVerified = false
+
+async function verifyTransporter() {
+  if (transporterVerified) return true
+  
+  try {
+    await transporter.verify()
+    console.log('✅ Email transporter verified successfully')
+    transporterVerified = true
+    return true
+  } catch (error) {
+    console.error('❌ Email transporter verification failed:', error)
+    return false
   }
-})
+}
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📧 Email API called')
+    
+    // Verify email transporter first
+    const isVerified = await verifyTransporter()
+    if (!isVerified) {
+      return NextResponse.json({
+        success: false,
+        error: 'Email service not available - transporter verification failed'
+      }, { status: 503 })
+    }
+    
     const body = await request.json()
     const { type, studentData, pdfBytes } = body
     
